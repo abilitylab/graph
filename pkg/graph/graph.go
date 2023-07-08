@@ -145,7 +145,7 @@ func (s *Service) Search(vectors []float32, resultsNum int) map[string]float32 {
 	results := make(map[string]float32, len(innerLabels))
 
 	for i, innerLabel := range innerLabels {
-		outerLabel, found := s.findOuterLabel(innerLabel)
+		outerLabel, found := s.findOuterLabelUnsafe(innerLabel)
 		if !found {
 			panic("outerLabel not found")
 		}
