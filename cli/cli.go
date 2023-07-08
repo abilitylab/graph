@@ -1,12 +1,14 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	url2 "net/url"
 	"sort"
+	"time"
 
 	"github.com/abilitylab/logger"
 	"go.uber.org/zap"
@@ -33,7 +35,7 @@ func WithMaxDistance(maxDistance float32) func(*getSimilarCfg) {
 	}
 }
 
-func GetSimilar(hostPost string, vector []float64, limit int, opts ...func(cfg *getSimilarCfg)) (map[string]float32, error) {
+func GetSimilar(ctx context.Context, hostPost string, vector []float64, limit int, opts ...func(cfg *getSimilarCfg)) (map[string]float32, error) {
 	cfg := &getSimilarCfg{
 		minDistance: 0,
 		maxDistance: 0.7,
@@ -75,7 +77,10 @@ func GetSimilar(hostPost string, vector []float64, limit int, opts ...func(cfg *
 
 	u.RawQuery = q.Encode()
 
-	req, err := http.NewRequest("POST", u.String(), nil)
+	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, "POST", u.String(), nil)
 	if err != nil {
 		logger.Error("error creating request", zap.Error(err))
 		return nil, err
@@ -95,7 +100,7 @@ func GetSimilar(hostPost string, vector []float64, limit int, opts ...func(cfg *
 		return nil, fmt.Errorf("error sending request, status code: %d", res.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		logger.Error("error reading response", zap.Error(err))
 		return nil, err
